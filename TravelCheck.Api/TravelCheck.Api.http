@@ -1,0 +1,6 @@
+@TravelCheck.Api_HostAddress = http://localhost:5136
+
+GET {{TravelCheck.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

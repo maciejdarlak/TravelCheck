@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="TravelCheck.Api/TravelCheck.Api.csproj" />
+  <Project Path="TravelCheck.Application/TravelCheck.Application.csproj" />
+  <Project Path="TravelCheck.Domain/TravelCheck.Domain.csproj" />
+  <Project Path="TravelCheck.Infrastructure/TravelCheck.Infrastructure.csproj" />
+</Solution>
