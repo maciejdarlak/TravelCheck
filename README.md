@@ -1,148 +1,154 @@
-TravelCheck — Business Trip Management System (Backend-first, Azure-ready)
+TravelCheck – Business Trip Management System
 
-TravelCheck is a production-style backend system for managing business trips, built with clean architecture principles and cloud-native design in mind.
+Backend system for registering and processing business trips, built with Clean Architecture and designed for cloud deployment on Microsoft Azure.
 
-The goal of this project is not to deliver a UI showcase, but to demonstrate real enterprise backend engineering: domain modeling, infrastructure separation, asynchronous processing, and Azure service integration.
+The application focuses on backend architecture, asynchronous processing and cloud-native patterns rather than UI presentation.
 
-Purpose
+Overview
 
-TravelCheck allows employees and administrators to manage business travel data and provides:
+The solution consists of backend services responsible for registering business trips, processing them in the background and managing their lifecycle.
 
-persistent storage using Azure Cosmos DB
+Planned frontend (Angular / React) will act as a thin client consuming the API.
 
-background job processing via Worker Service / Azure Functions
+Current scope covers full backend architecture and Azure integration.
 
-event-based communication using Service Bus
+Backend Features
 
-future file upload support with Blob Storage
+Business trip registration (CRUD)
 
-centralized trip status handling (New → Processing → Completed / Rejected)
+Azure Cosmos DB persistence
 
-scalable, cloud-ready architecture
+Domain-driven design
 
-This project is intended as a portfolio-grade backend application and learning platform for cloud-native development.
+Background processing with Worker Service / Azure Functions (planned)
 
-Architecture
+Message-based communication using Azure Service Bus (planned)
 
-The solution follows Clean Architecture:
+File uploads using Azure Blob Storage (planned)
 
-API → Application → Domain
-↓
-Infrastructure (Cosmos DB / Azure SDK)
+Trip lifecycle management:
 
-Each layer has a single responsibility and communicates through abstractions.
+New
 
-Solution Structure
+Processing
 
-TravelCheck.Domain
-└─ Entities
-└─ Enums
+Completed
 
-TravelCheck.Application
-└─ Dtos
-└─ Interfaces
-└─ Services
+Rejected
 
-TravelCheck.Infrastructure
-└─ Repositories
+Clean Architecture separation
 
-TravelCheck.Api
-└─ Controllers
-└─ Program.cs
-└─ appsettings.json
-
-Current Features
-
-Clean Architecture
-
-Domain-driven model
-
-CRUD API
-
-Azure Cosmos DB integration
-
-Partition keys
-
-Dependency Injection
-
-Repository Pattern
-
-Async operations
+REST API using ASP.NET Core
 
 Swagger / OpenAPI
 
 Cloud-ready configuration
 
-Azure SDK usage
+Partition key support
 
-Roadmap
-Infrastructure
+Repository pattern
 
-Azure Blob Storage (file upload)
+Dependency injection
 
-Azure Service Bus (messaging)
+Architecture
 
-Worker Service / Azure Functions
+Backend implemented using Clean Architecture:
 
-Secrets management
+Domain – entities and business logic
 
-Retry policies
+Application – services, use cases
 
-Application Insights
+Infrastructure – Cosmos DB repository and Azure SDK
 
-Business Logic
+API – HTTP layer
 
-Status lifecycle management
+Worker (planned) – background processing
 
-Background processing
+Frontend (planned) – Angular / React client
 
-History tracking
+High-level architecture:
 
-Soft delete
+                     +-----------------------------+
+                     |           FRONTEND          |
+                     |        Angular / React      |
+                     |                             |
+                     |     GET /api/trips          |
+                     |     POST /api/trips         |
+                     +--------------+--------------+
+                                    |
+                                    | HTTP / JSON
+                                    v
 
-Validation
+                     +--------------------------------------+
+                     |                 API                  |
+                     |          TripsController             |
+                     |                                      |
+                     |  → CreateAsync()                     |
+                     |  → GetAllAsync()                     |
+                     |  → UpdateAsync()                     |
+                     |  → DeleteAsync()                     |
+                     +------------------+------------------+
+                                        |
+                                        | delegates
+                                        v
 
-Error handling middleware
+                     +--------------------------------------+
+                     |           APPLICATION LAYER          |
+                     |                                      |
+                     |  TripService                         |
+                     |    → Create trip                     |
+                     |    → Update trip                     |
+                     |    → Manage state                    |
+                     +------------------+------------------+
+                                        |
+                                        | uses
+                                        v
 
-Frontend
+                     +--------------------------------------+
+                     |          INFRASTRUCTURE LAYER        |
+                     |                                      |
+                     |    CosmosTripRepository              |
+                     |                                      |
+                     |   CreateItemAsync()                  |
+                     |   ReplaceItemAsync()                 |
+                     |   QueryIterator                      |
+                     +------------------+------------------+
+                                        |
+                                        | Azure SDK
+                                        v
 
-Angular / React
+                     +--------------------------------------+
+                     |            AZURE COSMOS DB           |
+                     |                                      |
+                     |          Trips container             |
+                     |        Partition Key: Country        |
+                     +--------------------------------------+
 
-Trip forms
+          (Planned Extensions)
+                |
+                v
+    Azure Service Bus → Worker Service → Status Updates
+    Azure Blob Storage → Attachments
 
-Trip list and details
+    TravelCheck.Domain
+ └─ Entities
+ └─ Enums
 
-File uploads
+TravelCheck.Application
+ └─ Dtos
+ └─ Interfaces
+ └─ Services
 
-Real-time status updates
+TravelCheck.Infrastructure
+ └─ Repositories
 
-Configuration
+TravelCheck.Api
+ └─ Controllers
+ └─ Program.cs
+ └─ appsettings.json
 
-Configuration file:
-
-TravelCheck.Api/appsettings.json
-
-Example:
-
-{
-"CosmosDb": {
-"AccountEndpoint": "https://YOUR-ACCOUNT.documents.azure.com:443/
-",
-"AccountKey": "YOUR-KEY",
-"DatabaseName": "TravelCheckDb",
-"ContainerName": "Trips"
-}
-}
-
-Run locally
-
-Set Cosmos DB credentials in appsettings.json
-
-Run TravelCheck.Api
-
-Open in browser: /swagger
-
-Tech Stack
+ Technologies
+Backend
 
 .NET 8
 
@@ -154,12 +160,96 @@ Azure SDK
 
 Clean Architecture
 
-Repository Pattern
-
 Dependency Injection
 
-Swagger
+Repository Pattern
+
+Swagger / OpenAPI
+
+Planned
+
+Azure Service Bus
+
+Azure Blob Storage
+
+Azure Functions / Worker Service
+
+Azure Application Insights
+
+Angular / React frontend
+
+
+Configuration
+
+File: TravelCheck.Api/appsettings.json
+
+{
+  "CosmosDb": {
+    "AccountEndpoint": "https://YOUR-ACCOUNT.documents.azure.com:443/",
+    "AccountKey": "YOUR-KEY",
+    "DatabaseName": "TravelCheckDb",
+    "ContainerName": "Trips"
+  }
+}
+
+Local Startup
+
+
+Backend
+
+Configure Cosmos DB credentials
+
+Run API:
+
+dotnet run
+
+
+Open Swagger:
+
+/swagger
+
+
+Roadmap
+Infrastructure
+
+Azure Blob Storage
+
+Azure Service Bus
+
+Worker Service / Azure Functions
+
+Secrets management
+
+Retry policies
+
+Application Insights
+
+Business Logic
+
+Status transitions
+
+Background execution
+
+Event processing
+
+Soft delete
+
+History audit
+
+Validation layer
+
+Centralized error handling
+
+Frontend
+
+Angular / React
+
+Real-time status
+
+File upload
+
+Forms and lists
 
 Author
 
-Maciek Darlak
+Maciek Darłak
