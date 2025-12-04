@@ -1,73 +1,64 @@
-TravelCheck – Business Trip Management System
+# TravelCheck – Business Trip Management System
 
 Backend system for registering and processing business trips, built with Clean Architecture and designed for cloud deployment on Microsoft Azure.
 
-The application focuses on backend architecture, asynchronous processing and cloud-native patterns rather than UI presentation.
+The application focuses on backend architecture, asynchronous workflows and cloud-native patterns rather than UI presentation.
 
-Overview
+---
 
-The solution consists of backend services responsible for registering business trips, processing them in the background and managing their lifecycle.
+## Overview
 
-Planned frontend (Angular / React) will act as a thin client consuming the API.
+The solution is a backend-first system responsible for managing business trip data and controlling the full lifecycle of travel requests.
 
-Current scope covers full backend architecture and Azure integration.
+A future frontend (Angular / React) will act as a thin client consuming the API.
 
-Backend Features
+The main focus of the project is production-grade backend development: architecture, domain modeling, cloud services and background processing.
 
-Business trip registration (CRUD)
+---
 
-Azure Cosmos DB persistence
+## Backend Features
 
-Domain-driven design
+- CRUD operations for business trips  
+- Azure Cosmos DB persistence  
+- Partition key support  
+- Clean Architecture structure  
+- Domain-driven design  
+- Repository pattern  
+- Dependency injection  
+- REST API with ASP.NET Core  
+- Swagger / OpenAPI documentation  
+- Cloud-ready configuration  
 
-Background processing with Worker Service / Azure Functions (planned)
+Planned functionality:
 
-Message-based communication using Azure Service Bus (planned)
+- Background processing via Worker Service / Azure Functions  
+- Message-based communication with Azure Service Bus  
+- File storage using Azure Blob Storage  
+- Centralized status handling:
+  - New  
+  - Processing  
+  - Completed  
+  - Rejected  
+- Audit history and soft-delete  
+- Error handling and retry policies  
+- Application Insights integration  
 
-File uploads using Azure Blob Storage (planned)
+---
 
-Trip lifecycle management:
+## Architecture
 
-New
+Backend implemented using layered architecture:
 
-Processing
+- Domain layer – business rules and entities  
+- Application layer – services and use cases  
+- Infrastructure layer – Azure and persistence  
+- API – HTTP interface  
+- Worker (planned) – background execution  
+- Frontend (planned) – Angular / React UI  
 
-Completed
+High-level architecture diagram:
 
-Rejected
-
-Clean Architecture separation
-
-REST API using ASP.NET Core
-
-Swagger / OpenAPI
-
-Cloud-ready configuration
-
-Partition key support
-
-Repository pattern
-
-Dependency injection
-
-Architecture
-
-Backend implemented using Clean Architecture:
-
-Domain – entities and business logic
-
-Application – services, use cases
-
-Infrastructure – Cosmos DB repository and Azure SDK
-
-API – HTTP layer
-
-Worker (planned) – background processing
-
-Frontend (planned) – Angular / React client
-
-High-level architecture:
-
+```text
                      +-----------------------------+
                      |           FRONTEND          |
                      |        Angular / React      |
@@ -83,10 +74,10 @@ High-level architecture:
                      |                 API                  |
                      |          TripsController             |
                      |                                      |
-                     |  → CreateAsync()                     |
-                     |  → GetAllAsync()                     |
-                     |  → UpdateAsync()                     |
-                     |  → DeleteAsync()                     |
+                     |  → CreateTrip()                      |
+                     |  → GetTrips()                        |
+                     |  → UpdateTrip()                      |
+                     |  → DeleteTrip()                      |
                      +------------------+------------------+
                                         |
                                         | delegates
@@ -96,22 +87,19 @@ High-level architecture:
                      |           APPLICATION LAYER          |
                      |                                      |
                      |  TripService                         |
-                     |    → Create trip                     |
-                     |    → Update trip                     |
-                     |    → Manage state                    |
+                     |    → business rules                  |
+                     |    → state management                |
                      +------------------+------------------+
                                         |
                                         | uses
                                         v
 
                      +--------------------------------------+
-                     |          INFRASTRUCTURE LAYER        |
+                     |        INFRASTRUCTURE LAYER          |
                      |                                      |
-                     |    CosmosTripRepository              |
+                     |      CosmosTripRepository            |
                      |                                      |
-                     |   CreateItemAsync()                  |
-                     |   ReplaceItemAsync()                 |
-                     |   QueryIterator                      |
+                     |    Create / Update / Query           |
                      +------------------+------------------+
                                         |
                                         | Azure SDK
@@ -124,11 +112,12 @@ High-level architecture:
                      |        Partition Key: Country        |
                      +--------------------------------------+
 
-          (Planned Extensions)
-                |
-                v
-    Azure Service Bus → Worker Service → Status Updates
-    Azure Blob Storage → Attachments
+             (Planned Extensions)
+                   |
+                   v
+  Azure Service Bus → Worker Service → Status updates
+  Azure Blob Storage → Attachments
+
 
     TravelCheck.Domain
  └─ Entities
