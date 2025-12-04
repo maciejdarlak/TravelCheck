@@ -1,6 +1,7 @@
 ﻿using TravelCheck.Application.Interfaces;
 using TravelCheck.Application.Dtos;
 using TravelCheck.Domain.Entities;
+using TravelCheck.Domain.Enums;
 
 namespace TravelCheck.Application.Services;
 
@@ -16,7 +17,9 @@ public class TripService
     public async Task<Guid> CreateAsync(CreateTripDto dto)
     {
         var trip = new Trip(dto.EmployeeName, dto.Country, dto.From, dto.To); // mapping
+
         await _repository.AddAsync(trip);
+
         return trip.Id;
     }
 
@@ -40,6 +43,7 @@ public class TripService
         trip.UpdateDetails(dto.EmployeeName, dto.Country, dto.From, dto.To); // mapping
 
         await _repository.UpdateAsync(trip);   
+
         return trip;
     }
 
@@ -51,6 +55,21 @@ public class TripService
             throw new Exception("trip not found");
 
         await _repository.DeleteAsync(id);
+
+        return trip;
+    }
+
+    public async Task<Trip> ChangeStatusAsync(Guid id, TripStatus newStatus)
+    {
+        var trip = await _repository.GetByIdAsync(id);
+
+        if (trip == null)
+            throw new Exception("trip not found");
+
+        trip.ChangeStatus(newStatus);
+
+        await _repository.UpdateAsync(trip);
+
         return trip;
     }
 }

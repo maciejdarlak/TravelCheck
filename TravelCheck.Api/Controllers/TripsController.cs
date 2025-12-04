@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using TravelCheck.Application.Services;
 using TravelCheck.Application.Dtos;
+using TravelCheck.Application.Services;
+using TravelCheck.Domain.Enums;
 
 namespace TravelCheck.Api.Controllers;
 
@@ -19,6 +20,7 @@ public class TripsController : ControllerBase
     public async Task<IActionResult> Create(CreateTripDto dto)
     {
         var id = await _service.CreateAsync(dto);
+
         return Ok(id);
     }
 
@@ -26,6 +28,7 @@ public class TripsController : ControllerBase
     public async Task<IActionResult> GetAll()
     {
         var trips = await _service.GetAllAsync();
+
         return Ok(trips);
     }
 
@@ -43,6 +46,7 @@ public class TripsController : ControllerBase
     public async Task<IActionResult> Update(Guid id, UpdateTripDto dto)
     {
         var trip = await _service.UpdateAsync(id, dto);
+
         return Ok(trip);
     }
 
@@ -50,6 +54,15 @@ public class TripsController : ControllerBase
     public async Task<IActionResult> Delete(Guid id)
     {
         var trip = await _service.DeleteAsync(id);
+
+        return Ok(trip);
+    }
+
+    [HttpPatch("{id}/status")]
+    public async Task<IActionResult> ChangeStatus(Guid id, UpdateTripStatusDto dto)
+    {
+        var trip = _service.ChangeStatusAsync(id, dto.Status);
+
         return Ok(trip);
     }
 }

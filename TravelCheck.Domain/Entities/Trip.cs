@@ -40,4 +40,20 @@ public class Trip
     public void MarkProcessing() => Status = TripStatus.Processing;
     public void MarkCompleted() => Status = TripStatus.Completed;
     public void Reject() => Status = TripStatus.Rejected;
+
+    public void ChangeStatus(TripStatus newStatus)
+    {
+        if (Status == TripStatus.Rejected || Status == TripStatus.Completed)
+            throw new InvalidOperationException("Cannot change status when trip is finalized.");
+
+        if (Status == TripStatus.New && newStatus != TripStatus.Processing)
+            throw new InvalidOperationException("New trip can only go to Processing");
+
+        if (Status == TripStatus.Processing &&
+            newStatus != TripStatus.Completed &&
+            newStatus != TripStatus.Rejected)
+            throw new InvalidOperationException("Processing trip can only go to Completed or Rejected");
+
+        Status = newStatus;
+    }
 }
