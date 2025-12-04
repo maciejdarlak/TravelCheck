@@ -118,127 +118,98 @@ High-level architecture diagram:
   Azure Service Bus → Worker Service → Status updates
   Azure Blob Storage → Attachments
 
+```
 
-    TravelCheck.Domain
- └─ Entities
- └─ Enums
+## Solution Structure
 
-TravelCheck.Application
- └─ Dtos
- └─ Interfaces
- └─ Services
+### TravelCheck.Domain
+- Entities
+- Enums
 
-TravelCheck.Infrastructure
- └─ Repositories
+### TravelCheck.Application
+- Dtos
+- Interfaces
+- Services
 
-TravelCheck.Api
- └─ Controllers
- └─ Program.cs
- └─ appsettings.json
+### TravelCheck.Infrastructure
+- Repositories
 
- Technologies
-Backend
-
-.NET 8
-
-ASP.NET Core Web API
-
-Azure Cosmos DB
-
-Azure SDK
-
-Clean Architecture
-
-Dependency Injection
-
-Repository Pattern
-
-Swagger / OpenAPI
-
-Planned
-
-Azure Service Bus
-
-Azure Blob Storage
-
-Azure Functions / Worker Service
-
-Azure Application Insights
-
-Angular / React frontend
+### TravelCheck.Api
+- Controllers
+- Program.cs
+- appsettings.json
 
 
-Configuration
+## Technologies
 
-File: TravelCheck.Api/appsettings.json
+### Backend
+- .NET 8
+- ASP.NET Core Web API
+- Azure Cosmos DB
+- Azure SDK
+- Clean Architecture
+- Dependency Injection
+- Repository Pattern
+- Swagger / OpenAPI
 
-{
-  "CosmosDb": {
-    "AccountEndpoint": "https://YOUR-ACCOUNT.documents.azure.com:443/",
-    "AccountKey": "YOUR-KEY",
-    "DatabaseName": "TravelCheckDb",
-    "ContainerName": "Trips"
-  }
-}
-
-Local Startup
-
-
-Backend
-
-Configure Cosmos DB credentials
-
-Run API:
-
-dotnet run
+### Planned
+- Azure Service Bus
+- Azure Blob Storage
+- Azure Functions / Worker Service
+- Azure Application Insights
+- Angular / React frontend
 
 
-Open Swagger:
+## Configuration
 
-/swagger
+**File:** TravelCheck.Api/appsettings.json
+
+Cosmos DB configuration:
+
+- AccountEndpoint
+- AccountKey
+- DatabaseName = TravelCheckDb
+- ContainerName = Trips
 
 
-Roadmap
-Infrastructure
+## Local Startup
 
-Azure Blob Storage
+### Backend
 
-Azure Service Bus
+1. Configure Cosmos DB credentials
+2. Run API:
+   - dotnet run
+3. Open Swagger:
+   - /swagger
 
-Worker Service / Azure Functions
 
-Secrets management
+## Roadmap
 
-Retry policies
+### Infrastructure
+- Azure Blob Storage
+- Azure Service Bus
+- Worker Service / Azure Functions
+- Secrets management
+- Retry policies
+- Application Insights
 
-Application Insights
+### Business Logic
+- Status transitions
+- Background execution
+- Event processing
+- Soft delete
+- History audit
+- Validation layer
+- Centralized error handling
 
-Business Logic
+### Frontend
+- Angular / React
+- Real-time status
+- File upload
+- Forms and lists
 
-Status transitions
 
-Background execution
-
-Event processing
-
-Soft delete
-
-History audit
-
-Validation layer
-
-Centralized error handling
-
-Frontend
-
-Angular / React
-
-Real-time status
-
-File upload
-
-Forms and lists
-
-Author
+## Author
 
 Maciek Darłak
+
