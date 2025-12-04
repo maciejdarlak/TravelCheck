@@ -6,7 +6,7 @@ The application focuses on backend architecture, asynchronous workflows and clou
 
 ---
 
-## Overview
+### Overview
 
 The solution is a backend-first system responsible for managing business trip data and controlling the full lifecycle of travel requests.
 
