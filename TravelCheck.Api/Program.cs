@@ -1,4 +1,5 @@
 using Microsoft.Azure.Cosmos;
+using Azure.Messaging.ServiceBus;
 using TravelCheck.Application.Interfaces;
 using TravelCheck.Application.Services;
 using TravelCheck.Infrastructure.Repositories;
@@ -12,20 +13,31 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// register cosmos db client
-builder.Services.AddSingleton<CosmosClient>(sp =>
-{
-    var config = sp.GetRequiredService<IConfiguration>();
-    var endpoint = config["CosmosDb:AccountEndpoint"];
-    var key = config["CosmosDb:AccountKey"];
-    return new CosmosClient(endpoint, key);
-});
+// --------------------------
+// COSMOS DB CLIENT
+// --------------------------
+builder.Services.AddSingleton(_ =>
+    new CosmosClient(
+        builder.Configuration["CosmosDb:AccountEndpoint"],
+        builder.Configuration["CosmosDb:AccountKey"])
+);
 
-// register trip repository
+// --------------------------
+// REPOSITORIES
+// --------------------------
 builder.Services.AddSingleton<ITripRepository, CosmosTripRepository>();
+builder.Services.AddSingleton<IOutboxRepository, CosmosOutboxRepository>();
 
-// register application service
+// --------------------------
+// APPLICATION SERVICES
+// --------------------------
 builder.Services.AddScoped<TripService>();
+
+// --------------------------
+// SERVICE BUS CLIENT
+// --------------------------
+builder.Services.AddSingleton(_ =>
+    new ServiceBusClient(builder.Configuration["ServiceBus:ConnectionString"]));
 
 var app = builder.Build();
 

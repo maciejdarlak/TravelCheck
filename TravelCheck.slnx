@@ -3,4 +3,5 @@
   <Project Path="TravelCheck.Application/TravelCheck.Application.csproj" />
   <Project Path="TravelCheck.Domain/TravelCheck.Domain.csproj" />
   <Project Path="TravelCheck.Infrastructure/TravelCheck.Infrastructure.csproj" />
+  <Project Path="TravelCheck.Worker/TravelCheck.Worker.csproj" Id="d77b9df0-1384-456e-bdcf-42481165f87a" />
 </Solution>

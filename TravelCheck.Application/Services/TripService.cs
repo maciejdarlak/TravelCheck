@@ -2,23 +2,41 @@
 using TravelCheck.Application.Dtos;
 using TravelCheck.Domain.Entities;
 using TravelCheck.Domain.Enums;
+using TravelCheck.Application.Events;
+using System.Text.Json;
+using System.Data;
 
 namespace TravelCheck.Application.Services;
 
 public class TripService
 {
     private readonly ITripRepository _repository;
+    private readonly IOutboxRepository _outboxRepository;
 
-    public TripService(ITripRepository repository)
+    public TripService(ITripRepository repository, IOutboxRepository outboxRepository)
     {
         _repository = repository;
+        _outboxRepository = outboxRepository;
     }
 
     public async Task<Guid> CreateAsync(CreateTripDto dto)
     {
         var trip = new Trip(dto.EmployeeName, dto.Country, dto.From, dto.To); // mapping
 
-        await _repository.AddAsync(trip);
+        await _repository.AddAsync(trip); 
+
+        var evt = new TripCreatedEvent(trip.Id);
+
+        var outbox = new OutboxEvent
+        {
+            Id = Guid.NewGuid(),
+            Type = nameof(TripCreatedEvent),
+            Payload = JsonSerializer.Serialize(evt),
+            OccurredAt = DateTime.UtcNow,
+            Processed = false
+        };
+
+        await _outboxRepository.AddAsync(outbox); // save the event in Outbox so that the worker can later send it to the Service Bus
 
         return trip.Id;
     }

@@ -11,11 +11,11 @@ public class CosmosTripRepository : ITripRepository
 
     // CosmosClient → access to Cosmos DB
     // IConfiguration → access to appsettings.json
-    public CosmosTripRepository(CosmosClient client, IConfiguration config)
+    public CosmosTripRepository(CosmosClient client, IConfiguration cfg)
     {
-        var database = config["CosmosDb:DatabaseName"]!; 
-        var containerName = config["CosmosDb:ContainerName"]!;
-        _container = client.GetContainer(database, containerName);
+        var db = cfg["CosmosDb:DatabaseName"]!; 
+        var containerName = cfg["CosmosDb:ContainerName"]!;
+        _container = client.GetContainer(db, containerName);
     }
 
     public async Task AddAsync(Trip trip)
