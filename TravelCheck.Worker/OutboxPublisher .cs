@@ -1,6 +1,8 @@
 ﻿using Azure.Messaging.ServiceBus;
 using Microsoft.Extensions.Configuration;
 using TravelCheck.Application.Interfaces;
+using Microsoft.Extensions.Hosting;
+
 
 namespace TravelCheck.Worker;
 
