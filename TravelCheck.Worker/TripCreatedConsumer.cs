@@ -8,8 +8,8 @@ namespace TravelCheck.Worker;
 
 public class TripCreatedConsumer : BackgroundService
 {
-    private readonly ServiceBusProcessor _processor;
-    private readonly IServiceScopeFactory _scopeFactory;
+    private readonly ServiceBusProcessor _processor; // receives messages from the queue
+    private readonly IServiceScopeFactory _scopeFactory; // creates a new DI session (using ...) 
 
     public TripCreatedConsumer(
         ServiceBusClient client, // connection to Azure Service Bus
@@ -35,18 +35,18 @@ public class TripCreatedConsumer : BackgroundService
         var tripId = evt!.TripId;
 
         using var scope = _scopeFactory.CreateScope(); // new DI session
-        var tripService = scope.ServiceProvider.GetRequiredService<TripService>(); // getting TripService
+        var tripService = scope.ServiceProvider.GetRequiredService<TripService>(); // getting TripService object
 
-        await tripService.ChangeStatusAsync(tripId, TripStatus.Processing); // status = Processing
+        await tripService.ChangeStatusAsync(tripId, TripStatus.Processing); // status processing
 
         try
         {
             await Task.Delay(3000);
-            await tripService.ChangeStatusAsync(tripId, TripStatus.Completed); // success
+            await tripService.ChangeStatusAsync(tripId, TripStatus.Completed); // staus completed
         }
         catch
         {
-            await tripService.ChangeStatusAsync(tripId, TripStatus.Rejected); // error
+            await tripService.ChangeStatusAsync(tripId, TripStatus.Rejected); // staus rejected
         }
 
         await args.CompleteMessageAsync(args.Message); // received
