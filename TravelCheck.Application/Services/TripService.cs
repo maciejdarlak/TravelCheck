@@ -23,21 +23,10 @@ public class TripService
     {
         var trip = new Trip(dto.EmployeeName, dto.Country, dto.From, dto.To); // mapping
 
-        await _repository.AddAsync(trip); 
+        await _repository.AddAsync(trip);
 
-        var evt = new TripCreatedEvent(trip.Id);
-
-        var outbox = new OutboxEvent
-        {
-            Id = Guid.NewGuid(),
-            Type = nameof(TripCreatedEvent),
-            Payload = JsonSerializer.Serialize(evt),
-            OccurredAt = DateTime.UtcNow,
-            Processed = false
-        };
-
-        await _outboxRepository.AddAsync(outbox); // save the event in Outbox so that the worker can later send it to the Service Bus
-
+        await AddToOutboxAsync(new TripCreatedEvent(trip.Id));    
+        
         return trip.Id;
     }
 
@@ -89,5 +78,19 @@ public class TripService
         await _repository.UpdateAsync(trip);
 
         return trip;
+    }
+
+    private Task AddToOutboxAsync<TEvent>(TEvent evt)
+    {
+        var outbox = new OutboxEvent
+        {
+            Id = Guid.NewGuid(),
+            Type = nameof(TripCreatedEvent),
+            Payload = JsonSerializer.Serialize(evt),
+            OccurredAt = DateTime.Now,
+            Processed = false
+        };
+
+        return _outboxRepository.AddAsync(outbox);
     }
 }

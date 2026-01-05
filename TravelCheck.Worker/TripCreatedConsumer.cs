@@ -8,18 +8,18 @@ namespace TravelCheck.Worker;
 
 public class TripCreatedConsumer : BackgroundService
 {
-    private readonly ServiceBusProcessor _processor; // receives messages from the queue
     private readonly IServiceScopeFactory _scopeFactory; // creates a new DI session (using ...) 
+    private readonly ServiceBusProcessor _processor; // receives messages from the queue
 
     public TripCreatedConsumer(
+        IServiceScopeFactory scopeFactory, 
         ServiceBusClient client, // connection to Azure Service Bus
-        IServiceScopeFactory scopeFactory, // new DI scope for TripService
         IConfiguration config)
     {
         _scopeFactory = scopeFactory;
 
-        _processor = client.CreateProcessor(config["ServiceBus:QueueName"]); // queue listener
-        _processor.ProcessMessageAsync += OnMessage; // every message goes to OnMessage
+        _processor = client.CreateProcessor(config["ServiceBus:QueueName"]); 
+        _processor.ProcessMessageAsync += OnMessage; 
         _processor.ProcessErrorAsync += OnError;
     }
 
@@ -28,14 +28,14 @@ public class TripCreatedConsumer : BackgroundService
         await _processor.StartProcessingAsync(stoppingToken);
     }
 
-    // read the event and update the trip status
+    // read the event (trip ID), get this trip object (using scope) and update the trip status
     private async Task OnMessage(ProcessMessageEventArgs args)
     {
         var evt = JsonSerializer.Deserialize<TripCreatedEvent>(args.Message.Body); // json --> c#
-        var tripId = evt!.TripId;
+        var tripId = evt!.TripId; // trip ID from this event
 
         using var scope = _scopeFactory.CreateScope(); // new DI session
-        var tripService = scope.ServiceProvider.GetRequiredService<TripService>(); // getting TripService object
+        var tripService = scope.ServiceProvider.GetRequiredService<TripService>(); // scoped TripService object
 
         await tripService.ChangeStatusAsync(tripId, TripStatus.Processing); // status processing
 

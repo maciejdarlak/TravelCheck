@@ -6,6 +6,7 @@ using Microsoft.Extensions.Hosting;
 
 namespace TravelCheck.Worker;
 
+// transfers events from the database (Outbox) to the Service Bus
 public class OutboxPublisher : BackgroundService
 {
     private readonly IOutboxRepository _outbox;
@@ -20,19 +21,29 @@ public class OutboxPublisher : BackgroundService
         _sender = client.CreateSender(config["ServiceBus:QueueName"]); // create Service Bus sender
     }
 
-    protected override async Task ExecuteAsync (CancellationToken stoppingToken)
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        if (!stoppingToken.IsCancellationRequested)
+        while (!stoppingToken.IsCancellationRequested)
         {
-            var events = await _outbox.GetUnprocessedAsync(); // get unprocessed events
-
-            foreach (var evt in events)
+            try
             {
-                await _sender.SendMessageAsync(new ServiceBusMessage(evt.Payload)); // send event message
-                await _outbox.MarkProcessedAsync(evt.Id); // mark it as processed
-            }
-        }
+                var events = await _outbox.GetUnprocessedAsync();
 
-        await Task.Delay(3000, stoppingToken);
+                foreach (var evt in events)
+                {
+                    await _sender.SendMessageAsync(
+                        new ServiceBusMessage(evt.Payload),
+                        stoppingToken);
+
+                    await _outbox.MarkProcessedAsync(evt.Id);
+                }
+            }
+            catch (Exception)
+            {
+            }
+
+            await Task.Delay(3000, stoppingToken);
+        }
     }
+
 }

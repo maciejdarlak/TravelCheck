@@ -25,7 +25,7 @@ public class CosmosOutboxRepository : IOutboxRepository
     public async Task<IEnumerable<OutboxEvent>> GetUnprocessedAsync()
     {
         var query = _container.GetItemQueryIterator<OutboxEvent>(
-            new QueryDefinition("select * from c where c.procced == false"));
+            new QueryDefinition("select * from c where c.processed == false"));
 
         var res = new List<OutboxEvent>();
 
