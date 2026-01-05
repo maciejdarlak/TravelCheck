@@ -1,8 +1,8 @@
-# TravelCheck – Business Trip Management System
+# TravelCheck – Event-Driven Business Trip Processing System
 
-Backend system for registering and processing business trips, built with Clean Architecture and designed for cloud deployment on Microsoft Azure.
+Cloud-native, event-driven backend system for registering and processing business trips, built with Clean Architecture and Microsoft Azure.
 
-The application focuses on backend architecture, asynchronous workflows and cloud-native patterns rather than UI presentation.
+The application focuses on asynchronous workflows, background processing and production-grade backend architecture rather than UI presentation.
 
 ---
 
@@ -18,14 +18,24 @@ The main focus of the project is production-grade backend development: architect
 
 ## Backend Features
 
-- CRUD operations for business trips  
+- Event-driven backend architecture  
+- Business trip lifecycle management  
+- Clean Architecture (Domain / Application / Infrastructure)  
+- Domain-first design  
 - Azure Cosmos DB persistence  
-- Partition key support  
-- Clean Architecture structure  
-- Domain-driven design  
+  - Trips container (business state)
+  - Outbox container (event storage)
+- Outbox Pattern (reliable event publishing)  
+- Azure Service Bus messaging  
+- Background processing via Worker Services  
+- Explicit trip status lifecycle:
+  - New  
+  - Processing  
+  - Completed  
+  - Rejected  
+- Dependency Injection  
 - Repository pattern  
-- Dependency injection  
-- REST API with ASP.NET Core  
+- ASP.NET Core Web API  
 - Swagger / OpenAPI documentation  
 - Cloud-ready configuration  
 
@@ -47,13 +57,13 @@ Planned functionality:
 
 ## Architecture
 
-Backend implemented using layered architecture:
+Backend implemented using Clean Architecture and event-driven patterns:
 
-- Domain layer – business rules and entities  
-- Application layer – services and use cases  
-- Infrastructure layer – Azure and persistence  
-- API – HTTP interface  
-- Worker (planned) – background execution  
+- Domain – business rules, entities and state  
+- Application – use cases, orchestration and business events  
+- Infrastructure – Azure adapters (Cosmos DB, Service Bus)  
+- API – HTTP entry point  
+- Worker – background processing and event consumers  
 - Frontend (planned) – Angular / React UI  
 
 High-level architecture diagram:
@@ -112,11 +122,13 @@ High-level architecture diagram:
                      |        Partition Key: Country        |
                      +--------------------------------------+
 
-             (Planned Extensions)
-                   |
-                   v
-  Azure Service Bus → Worker Service → Status updates
-  Azure Blob Storage → Attachments
+                         (Asynchronous Processing)
+                                       |
+                                       v
+  Azure Service Bus → Worker Services → Trip status updates
+  Outbox Pattern → Reliable message publishing
+  Azure Blob Storage (planned) → Attachments
+
 
 ```
 
@@ -129,7 +141,8 @@ High-level architecture diagram:
 ### TravelCheck.Application
 - Dtos
 - Interfaces
-- Services
+- Application services
+- Business events
 
 ### TravelCheck.Infrastructure
 - Repositories
@@ -153,10 +166,10 @@ High-level architecture diagram:
 - Swagger / OpenAPI
 
 ### Planned
-- Azure Service Bus
 - Azure Blob Storage
-- Azure Functions / Worker Service
 - Azure Application Insights
+- Retry and dead-letter handling
+- Authentication (Azure AD)
 - Angular / React frontend
 
 
@@ -186,12 +199,10 @@ Cosmos DB configuration:
 ## Roadmap
 
 ### Infrastructure
-- Azure Blob Storage
-- Azure Service Bus
-- Worker Service / Azure Functions
+- Retry and dead-letter handling
+- Application Insights telemetry
 - Secrets management
-- Retry policies
-- Application Insights
+- Azure Blob Storage
 
 ### Business Logic
 - Status transitions
