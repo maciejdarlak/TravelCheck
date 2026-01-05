@@ -36,8 +36,9 @@ public class CosmosOutboxRepository : IOutboxRepository
     }
 
     // Update the processed field in the Cosmos DB document using the PATCH operation
-    public Task MarkProcessedAsync(Guid id)
-        => _container.PatchItemAsync<OutboxEvent>(id.ToString(),
-            new PartitionKey("TripCreated"),
+    public Task MarkProcessedAsync(Guid id, string type)
+        => _container.PatchItemAsync<OutboxEvent>(
+            id.ToString(),
+            new PartitionKey(type),
             new[] { PatchOperation.Replace("/processed", true) });
 }

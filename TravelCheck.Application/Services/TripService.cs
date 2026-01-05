@@ -82,10 +82,12 @@ public class TripService
 
     private Task AddToOutboxAsync<TEvent>(TEvent evt)
     {
+        var type = typeof(TEvent).Name;
+
         var outbox = new OutboxEvent
         {
             Id = Guid.NewGuid(),
-            Type = nameof(TripCreatedEvent),
+            Type = type,
             Payload = JsonSerializer.Serialize(evt),
             OccurredAt = DateTime.Now,
             Processed = false
