@@ -4,7 +4,6 @@ using TravelCheck.Domain.Entities;
 using TravelCheck.Domain.Enums;
 using TravelCheck.Application.Events;
 using System.Text.Json;
-using System.Data;
 
 namespace TravelCheck.Application.Services;
 
@@ -19,17 +18,19 @@ public class TripService
         _outboxRepository = outboxRepository;
     }
 
+    // CREATE → TripCreatedEvent
     public async Task<Guid> CreateAsync(CreateTripDto dto)
     {
-        var trip = new Trip(dto.EmployeeName, dto.Country, dto.From, dto.To); // mapping
+        var trip = new Trip(dto.EmployeeName, dto.Country, dto.From, dto.To);
 
         await _repository.AddAsync(trip);
 
-        await AddToOutboxAsync(new TripCreatedEvent(trip.Id));    
-        
+        await AddToOutboxAsync(new TripCreatedEvent(trip.Id));
+
         return trip.Id;
     }
 
+    // READ 
     public async Task<IEnumerable<Trip>> GetAllAsync()
     {
         return await _repository.GetAllAsync();
@@ -40,6 +41,7 @@ public class TripService
         return await _repository.GetByIdAsync(id);
     }
 
+    // UPDATE → TripUpdatedEvent
     public async Task<Trip> UpdateAsync(Guid id, UpdateTripDto dto)
     {
         var trip = await _repository.GetByIdAsync(id);
@@ -47,13 +49,16 @@ public class TripService
         if (trip == null)
             throw new Exception("trip not found");
 
-        trip.UpdateDetails(dto.EmployeeName, dto.Country, dto.From, dto.To); // mapping
+        trip.UpdateDetails(dto.EmployeeName, dto.Country, dto.From, dto.To);
 
-        await _repository.UpdateAsync(trip);   
+        await _repository.UpdateAsync(trip);
+
+        await AddToOutboxAsync(new TripUpdatedEvent(trip.Id));
 
         return trip;
     }
 
+    // DELETE → TripDeletedEvent
     public async Task<Trip> DeleteAsync(Guid id)
     {
         var trip = await _repository.GetByIdAsync(id);
@@ -63,9 +68,12 @@ public class TripService
 
         await _repository.DeleteAsync(id);
 
+        await AddToOutboxAsync(new TripDeletedEvent(id));
+
         return trip;
     }
 
+    // STATUS CHANGE → TripStatusChangedEvent (for WORKER - consumer only)
     public async Task<Trip> ChangeStatusAsync(Guid id, TripStatus newStatus)
     {
         var trip = await _repository.GetByIdAsync(id);
@@ -77,19 +85,24 @@ public class TripService
 
         await _repository.UpdateAsync(trip);
 
+        await AddToOutboxAsync(
+            new TripStatusChangedEvent(trip.Id, newStatus)
+        );
+
         return trip;
     }
 
+    // OUTBOX HELPER
     private Task AddToOutboxAsync<TEvent>(TEvent evt)
     {
-        var type = typeof(TEvent).Name;
+        var type = evt!.GetType().Name;
 
         var outbox = new OutboxEvent
         {
             Id = Guid.NewGuid(),
-            Type = type,
+            Type = type, // partition key
             Payload = JsonSerializer.Serialize(evt),
-            OccurredAt = DateTime.Now,
+            OccurredAt = DateTimeOffset.UtcNow,
             Processed = false
         };
 

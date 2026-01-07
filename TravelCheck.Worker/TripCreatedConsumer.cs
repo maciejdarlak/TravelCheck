@@ -1,6 +1,7 @@
 ﻿using Azure.Messaging.ServiceBus;
 using System.Text.Json;
 using TravelCheck.Application.Events;
+using TravelCheck.Application.Interfaces;
 using TravelCheck.Application.Services;
 using TravelCheck.Domain.Enums;
 
@@ -8,8 +9,8 @@ namespace TravelCheck.Worker;
 
 public class TripCreatedConsumer : BackgroundService
 {
-    private readonly IServiceScopeFactory _scopeFactory; // creates a new DI session (using ...) 
-    private readonly ServiceBusProcessor _processor; // receives messages from the queue
+    private readonly IServiceScopeFactory _scopeFactory; 
+    private readonly ServiceBusProcessor _processor; 
 
     public TripCreatedConsumer(
         IServiceScopeFactory scopeFactory, 
@@ -28,28 +29,69 @@ public class TripCreatedConsumer : BackgroundService
         await _processor.StartProcessingAsync(stoppingToken);
     }
 
-    // read the event (trip ID), get this trip object (using scope) and update the trip status
+    // Handles TripCreatedEvent messages: loads the trip aggregate, 
+    // evaluates external risk rules, and finalizes the trip status accordingly.
     private async Task OnMessage(ProcessMessageEventArgs args)
     {
-        var evt = JsonSerializer.Deserialize<TripCreatedEvent>(args.Message.Body); // json --> c#
-        var tripId = evt!.TripId; // trip ID from this event
+        TripCreatedEvent evt;
 
-        using var scope = _scopeFactory.CreateScope(); // new DI session
-        var tripService = scope.ServiceProvider.GetRequiredService<TripService>(); // scoped TripService object
+        try // json --> TripCreatedEvent
+        {
+            evt = args.Message.Body.ToObjectFromJson<TripCreatedEvent>() 
+                  ?? throw new JsonException("Payload deserialized to null.");
+        }
+        catch (Exception ex) // if is not possible --> dead letter queue
+        {
+            await args.DeadLetterMessageAsync(args.Message, "InvalidPayload", ex.Message); 
+            return;
+        }
 
-        await tripService.ChangeStatusAsync(tripId, TripStatus.Processing); // status processing
+        using var scope = _scopeFactory.CreateScope(); // DI scope 
+
+        var tripService = scope.ServiceProvider.GetRequiredService<TripService>(); // DI scope access to TripService
+        var riskyCountryService = scope.ServiceProvider.GetRequiredService<IRiskyCountryService>(); // DI scope access to IRiskyCountryService
 
         try
         {
-            await Task.Delay(3000);
-            await tripService.ChangeStatusAsync(tripId, TripStatus.Completed); // staus completed
-        }
-        catch
-        {
-            await tripService.ChangeStatusAsync(tripId, TripStatus.Rejected); // staus rejected
-        }
+            // 1) load trip first - id from evt
+            var trip = await tripService.GetByIdAsync(evt.TripId);
 
-        await args.CompleteMessageAsync(args.Message); // received
+            if (trip is null)
+            {
+                await args.CompleteMessageAsync(args.Message);
+                return;
+            }
+
+            // 2) if already finalized break it 
+            if (trip.Status == TripStatus.Completed || trip.Status == TripStatus.Rejected)
+            {
+                await args.CompleteMessageAsync(args.Message);
+                return;
+            }
+
+            // 3) move to processing only when New
+            if (trip.Status == TripStatus.New)
+            {
+                await tripService.ChangeStatusAsync(evt.TripId, TripStatus.Processing);
+            }
+
+            // 4) external decision
+            var isRisky = await riskyCountryService.IsCountryRiskyAsync(trip.Country, args.CancellationToken);
+
+            // 5) finalize 
+            await tripService.ChangeStatusAsync(
+                evt.TripId,
+                isRisky ? TripStatus.Rejected : TripStatus.Completed);
+
+            // 6) remove from service bus queue
+            await args.CompleteMessageAsync(args.Message);
+        }
+        catch (Exception ex)
+        {
+            await args.AbandonMessageAsync(args.Message);
+            Console.WriteLine(ex);
+            throw;
+        }
     }
 
     private Task OnError(ProcessErrorEventArgs args)

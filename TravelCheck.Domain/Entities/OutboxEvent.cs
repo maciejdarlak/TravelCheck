@@ -1,17 +1,19 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace TravelCheck.Domain.Entities
+﻿namespace TravelCheck.Domain.Entities
 {
     public class OutboxEvent
     {
         public Guid Id { get; set; }
+
+        // Partition key (e.g. "TripCreatedEvent")
         public string Type { get; set; } = null!;
+
+        // Serialized event payload
         public string Payload { get; set; } = null!;
-        public DateTime OccurredAt { get; set; }
+
+        // UTC timestamp of event creation
+        public DateTimeOffset OccurredAt { get; set; }
+
+        // Whether the event was already published to Service Bus
         public bool Processed { get; set; }
     }
 }

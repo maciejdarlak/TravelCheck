@@ -58,11 +58,11 @@ public class TripsController : ControllerBase
         return Ok(trip);
     }
 
-    [HttpPatch("{id}/status")]
-    public async Task<IActionResult> ChangeStatus(Guid id, UpdateTripStatusDto dto)
-    {
-        var trip = _service.ChangeStatusAsync(id, dto.Status);
-
-        return Ok(trip);
-    }
+    // e.g. for admin or manager only - now worker makes it only, nobady else
+    //[HttpPatch("{id}/status")]
+    //public async Task<IActionResult> ChangeStatus(Guid id, UpdateTripStatusDto dto)
+    //{
+    //    var trip = await _service.ChangeStatusAsync(id, dto.Status);
+    //    return Ok(trip);
+    //}
 }

@@ -10,6 +10,7 @@ public class Trip
     public DateTime From { get; private set; }
     public DateTime To { get; private set; }
     public TripStatus Status { get; private set; }
+    public string? RejectionReason { get; private set; } 
 
     public Trip(string employeeName, string country, DateTime from, DateTime to)
     {
@@ -39,7 +40,14 @@ public class Trip
 
     public void MarkProcessing() => Status = TripStatus.Processing;
     public void MarkCompleted() => Status = TripStatus.Completed;
-    public void Reject() => Status = TripStatus.Rejected;
+    public void Reject(string reason)
+    {
+        if (string.IsNullOrWhiteSpace(reason))
+        {
+            Status = TripStatus.Rejected;
+            RejectionReason = reason;
+        }
+    }
 
     public void ChangeStatus(TripStatus newStatus)
     {

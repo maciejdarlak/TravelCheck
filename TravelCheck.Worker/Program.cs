@@ -5,7 +5,10 @@ using Microsoft.Extensions.DependencyInjection;
 using TravelCheck.Application.Interfaces;
 using TravelCheck.Application.Services;
 using TravelCheck.Infrastructure.Repositories;
+using TravelCheck.Infrastructure.Services;
 using TravelCheck.Worker;
+using Microsoft.Extensions.DependencyInjection;
+
 
 Host.CreateDefaultBuilder(args)
     .ConfigureServices((context, services) =>
@@ -24,6 +27,12 @@ Host.CreateDefaultBuilder(args)
 
         // application services
         services.AddScoped<TripService>();
+
+        // external source (future: ONZ/MSZ HTTP)
+        services.AddHttpClient(); 
+
+        // risky countries (offline impl now, replace later with real HTTP/DB)
+        services.AddSingleton<IRiskyCountryService, FakeRiskyCountryService>(); 
 
         // azure service bus
         services.AddSingleton(_ =>
