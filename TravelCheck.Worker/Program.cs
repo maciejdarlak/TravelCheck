@@ -2,13 +2,14 @@
 using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using TravelCheck.Application.Interfaces;
 using TravelCheck.Application.Services;
+using TravelCheck.Infrastructure.Integrations;
 using TravelCheck.Infrastructure.Repositories;
 using TravelCheck.Infrastructure.Services;
 using TravelCheck.Worker;
-using Microsoft.Extensions.DependencyInjection;
-
 
 Host.CreateDefaultBuilder(args)
     .ConfigureServices((context, services) =>
@@ -19,7 +20,8 @@ Host.CreateDefaultBuilder(args)
         services.AddSingleton(_ =>
             new CosmosClient(
                 config["CosmosDb:AccountEndpoint"],
-                config["CosmosDb:AccountKey"]));
+                config["CosmosDb:AccountKey"])
+            );
 
         // repositories
         services.AddSingleton<ITripRepository, CosmosTripRepository>();
@@ -28,11 +30,18 @@ Host.CreateDefaultBuilder(args)
         // application services
         services.AddScoped<TripService>();
 
-        // external source (future: ONZ/MSZ HTTP)
-        services.AddHttpClient(); 
+        // risky countries (typed HttpClient)
+        services.AddHttpClient<HttpRiskyCountryProvider>(client =>
+        {
+            // client.BaseAddress = new Uri(config["RiskyCountries:BaseUrl"]);
+        });
 
-        // risky countries (offline impl now, replace later with real HTTP/DB)
-        services.AddSingleton<IRiskyCountryService, FakeRiskyCountryService>(); 
+        services.AddScoped<IRiskyCountryService>(sp =>
+        {
+            var inner = sp.GetRequiredService<HttpRiskyCountryProvider>();
+            var logger = sp.GetRequiredService<ILogger<RiskyCountryResilienceDecorator>>();
+            return new RiskyCountryResilienceDecorator(inner, logger);
+        });
 
         // azure service bus
         services.AddSingleton(_ =>

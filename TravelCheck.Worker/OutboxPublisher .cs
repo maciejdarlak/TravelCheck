@@ -35,7 +35,7 @@ public class OutboxPublisher : BackgroundService
                         new ServiceBusMessage(evt.Payload),
                         stoppingToken);
 
-                    await _outbox.MarkProcessedAsync(evt.Id);
+                    await _outbox.MarkProcessedAsync(evt.Id, evt.Type);
                 }
             }
             catch (Exception)
