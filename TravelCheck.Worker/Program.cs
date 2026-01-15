@@ -16,6 +16,12 @@ Host.CreateDefaultBuilder(args)
     {
         IConfiguration config = context.Configuration;
 
+        // application insights (worker)
+        services.AddApplicationInsightsTelemetryWorkerService(options =>
+        {
+            options.ConnectionString = config["ApplicationInsights:ConnectionString"];
+        });
+
         // cosmos db
         services.AddSingleton(_ =>
             new CosmosClient(

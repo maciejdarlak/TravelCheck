@@ -4,6 +4,7 @@ using TravelCheck.Domain.Entities;
 using TravelCheck.Domain.Enums;
 using TravelCheck.Application.Events;
 using System.Text.Json;
+using System.Diagnostics;
 
 namespace TravelCheck.Application.Services;
 
@@ -96,6 +97,7 @@ public class TripService
     private Task AddToOutboxAsync<TEvent>(TEvent evt)
     {
         var type = evt!.GetType().Name;
+        var activity = Activity.Current;
 
         var outbox = new OutboxEvent
         {
@@ -103,7 +105,11 @@ public class TripService
             Type = type, // partition key
             Payload = JsonSerializer.Serialize(evt),
             OccurredAt = DateTimeOffset.UtcNow,
-            Processed = false
+            Processed = false,
+
+            CorrelationId = activity?.TraceId.ToString(),
+            TraceParent = activity?.Id,
+            TraceState = activity?.TraceStateString
         };
 
         return _outboxRepository.AddAsync(outbox);

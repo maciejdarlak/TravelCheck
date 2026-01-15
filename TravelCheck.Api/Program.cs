@@ -3,59 +3,61 @@ using Azure.Messaging.ServiceBus;
 using TravelCheck.Application.Interfaces;
 using TravelCheck.Application.Services;
 using TravelCheck.Infrastructure.Repositories;
+using Microsoft.ApplicationInsights.Extensibility;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// add api controllers
+// api controllers
 builder.Services.AddControllers();
 
-// add swagger support
+// swagger
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// --------------------------
-// COSMOS DB CLIENT
-// --------------------------
+// application insights
+builder.Services.AddApplicationInsightsTelemetry(options =>
+{
+    options.ConnectionString =
+        builder.Configuration["ApplicationInsights:ConnectionString"];
+});
+
+// cosmos db client
 builder.Services.AddSingleton(_ =>
     new CosmosClient(
         builder.Configuration["CosmosDb:AccountEndpoint"],
         builder.Configuration["CosmosDb:AccountKey"])
 );
 
-// --------------------------
-// REPOSITORIES
-// --------------------------
+// repositories
 builder.Services.AddSingleton<ITripRepository, CosmosTripRepository>();
 builder.Services.AddSingleton<IOutboxRepository, CosmosOutboxRepository>();
 
-// --------------------------
-// APPLICATION SERVICES
-// --------------------------
+// application services
 builder.Services.AddScoped<TripService>();
 
-// --------------------------
-// SERVICE BUS CLIENT
-// --------------------------
+// service bus client
 builder.Services.AddSingleton(_ =>
-    new ServiceBusClient(builder.Configuration["ServiceBus:ConnectionString"]));
+    new ServiceBusClient(
+        builder.Configuration["ServiceBus:ConnectionString"])
+);
 
 var app = builder.Build();
 
-// enable swagger in development
+// swagger (dev only)
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
 
-// redirect http to https
+// https
 app.UseHttpsRedirection();
 
-// add authorization middleware
+// authorization
 app.UseAuthorization();
 
-// map api routes
+// api routes
 app.MapControllers();
 
-// run application
+// run app
 app.Run();

@@ -3,17 +3,14 @@
     public class OutboxEvent
     {
         public Guid Id { get; set; }
-
-        // Partition key (e.g. "TripCreatedEvent")
         public string Type { get; set; } = null!;
-
-        // Serialized event payload
         public string Payload { get; set; } = null!;
-
-        // UTC timestamp of event creation
         public DateTimeOffset OccurredAt { get; set; }
-
-        // Whether the event was already published to Service Bus
         public bool Processed { get; set; }
+
+        public string? CorrelationId { get; set; } // business correlation ID shared by all events of the same trip
+
+        public string? TraceParent { get; set; }   // allows tracking one business flow across services (HTTP -> consumer)
+        public string? TraceState { get; set; }    // additional notes to TraceParent
     }
 }
