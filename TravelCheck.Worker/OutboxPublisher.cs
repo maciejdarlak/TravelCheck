@@ -10,30 +10,22 @@ namespace TravelCheck.Worker;
 // transfers events from the database (Outbox) to the Service Bus
 public class OutboxPublisher : BackgroundService
 {
-    // ===== Telemetria / źródło aktywności (spans) =====
-    private static readonly ActivitySource ActivitySource = new("TravelCheck.OutboxPublisher");
-
-    // ===== Zależności (repo, sender, logger) =====
+    private static readonly ActivitySource ActivitySource = new("TravelCheck.OutboxPublisher"); // spans factory
     private readonly IOutboxRepository _outbox;
     private readonly ServiceBusSender _sender;
     private readonly ILogger<OutboxPublisher> _logger;
 
-    // ===== Inicjalizacja / konstruktor =====
     public OutboxPublisher(
-        IOutboxRepository outbox,
-        ServiceBusClient client,
+        IOutboxRepository outbox, // CosmosOutboxRepository class implementation - access to events repository
+        ServiceBusClient client,  // connection string from appsetings.json
         IConfiguration config,
         ILogger<OutboxPublisher> logger)
     {
         _outbox = outbox;
-
-        // Konfiguracja nadawcy Service Bus (queue)
         _sender = client.CreateSender(config["ServiceBus:QueueName"]);
-
         _logger = logger;
     }
 
-    // ===== Główna pętla pracy BackgroundService =====
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         while (!stoppingToken.IsCancellationRequested)
@@ -46,7 +38,10 @@ public class OutboxPublisher : BackgroundService
                 // publication of each event
                 foreach (var evt in events)
                 {
-                    // adding additional items for each log (log = what happend)
+
+                // 1. **** ADDITIONAL LOG ITEMS ****
+
+                    // adding per-event log context (only additional items)
                     using var scope = _logger.BeginScope(new Dictionary<string, object?>
                     {
                         ["OutboxEventId"] = evt.Id,
@@ -54,40 +49,40 @@ public class OutboxPublisher : BackgroundService
                         ["CorrelationId"] = evt.CorrelationId
                     });
 
-                    // trace context
-                    ActivityContext parentContext = default;
+                // 2. **** API AND EVT TRACE CONNECTION ****
 
-                    // jeśli traceparent istnieje, kontynuujemy trace
-                    if (!string.IsNullOrWhiteSpace(evt.TraceParent))
+                    ActivityContext parentContext = default; // API trace context (if available)
+
+                    if (!string.IsNullOrWhiteSpace(evt.TraceParent)) // evt trace context (from Outbox)
                     {
-                        parentContext = ActivityContext.Parse(evt.TraceParent, evt.TraceState);
+                        parentContext = ActivityContext.Parse(evt.TraceParent, evt.TraceState); // API + evt trace connection
                     }
 
-                    // this is a span - a single trace element (span = details: time, connection woth another spans ...)
+                    // creating a new span (producer) linked to the incoming trace and sending telemetry to Application Insights
                     using var activity = ActivitySource.StartActivity(
                         "PublishOutboxEvent",
                         ActivityKind.Producer,
                         parentContext);
 
-                    // service bus message construction
-                    var msg = new ServiceBusMessage(evt.Payload)
+                // **** 3.SERVICE BUS MESSAGE CREATION ****
+
+                    // Service Bus message creation (evt body + metadata)
+                    var msg = new ServiceBusMessage(evt.Payload) // evt body
                     {
                         Subject = evt.Type,
                         CorrelationId = evt.CorrelationId ?? evt.Id.ToString()
                     };
 
-                    // trace --> service bus message
+                    // passing W3C trace context to Service Bus message properties
                     if (!string.IsNullOrWhiteSpace(evt.TraceParent))
                         msg.ApplicationProperties["traceparent"] = evt.TraceParent;
 
                     if (!string.IsNullOrWhiteSpace(evt.TraceState))
                         msg.ApplicationProperties["tracestate"] = evt.TraceState;
 
-                    // trace --> service bus 
-                    await _sender.SendMessageAsync(msg, stoppingToken);                 
-                    await _outbox.MarkProcessedAsync(evt.Id, evt.Type);
+                    await _sender.SendMessageAsync(msg, stoppingToken); // send to Service Bus
+                    await _outbox.MarkProcessedAsync(evt.Id, evt.Type); // mark as processed in Outbox
 
-                    // succcess log 
                     _logger.LogInformation("Outbox event published and marked as processed.");
                 }
             }
