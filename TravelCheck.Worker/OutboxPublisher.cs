@@ -38,10 +38,7 @@ public class OutboxPublisher : BackgroundService
                 // publication of each event
                 foreach (var evt in events)
                 {
-
-                // 1. **** ADDITIONAL LOG ITEMS ****
-
-                    // adding per-event log context (only additional items)
+                    // 1.LOGS - adding per-event log context (only additional items)
                     using var scope = _logger.BeginScope(new Dictionary<string, object?>
                     {
                         ["OutboxEventId"] = evt.Id,
@@ -49,8 +46,7 @@ public class OutboxPublisher : BackgroundService
                         ["CorrelationId"] = evt.CorrelationId
                     });
 
-                // 2. **** API AND EVT TRACE CONNECTION ****
-
+                    // 2.TRACE
                     ActivityContext parentContext = default; // API trace context (if available)
 
                     if (!string.IsNullOrWhiteSpace(evt.TraceParent)) // evt trace context (from Outbox)
@@ -64,16 +60,13 @@ public class OutboxPublisher : BackgroundService
                         ActivityKind.Producer,
                         parentContext);
 
-                // **** 3.SERVICE BUS MESSAGE CREATION ****
-
-                    // Service Bus message creation (evt body + metadata)
+                    // 3.SB
                     var msg = new ServiceBusMessage(evt.Payload) // evt body
                     {
                         Subject = evt.Type,
                         CorrelationId = evt.CorrelationId ?? evt.Id.ToString()
                     };
 
-                    // passing W3C trace context to Service Bus message properties
                     if (!string.IsNullOrWhiteSpace(evt.TraceParent))
                         msg.ApplicationProperties["traceparent"] = evt.TraceParent;
 
@@ -81,7 +74,7 @@ public class OutboxPublisher : BackgroundService
                         msg.ApplicationProperties["tracestate"] = evt.TraceState;
 
                     await _sender.SendMessageAsync(msg, stoppingToken); // send to Service Bus
-                    await _outbox.MarkProcessedAsync(evt.Id, evt.Type); // mark as processed in Outbox
+                    await _outbox.MarkProcessedAsync(evt.Id, evt.Type); 
 
                     _logger.LogInformation("Outbox event published and marked as processed.");
                 }
