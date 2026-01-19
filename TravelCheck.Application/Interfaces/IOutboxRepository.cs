@@ -9,7 +9,7 @@ namespace TravelCheck.Application.Interfaces
 {
     public interface IOutboxRepository
     {
-        Task AddAsync(OutboxEvent evt);
+        Task AddAsync(OutboxEvent evt, CancellationToken ct);
         Task<IEnumerable<OutboxEvent>> GetUnprocessedAsync();
         Task MarkProcessedAsync(Guid id, string type);
     }

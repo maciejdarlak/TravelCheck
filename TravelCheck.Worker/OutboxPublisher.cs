@@ -38,7 +38,7 @@ public class OutboxPublisher : BackgroundService
                 // publication of each event
                 foreach (var evt in events)
                 {
-                    // 1.LOGS - adding per-event log context (only additional items)
+                    // 1.LOGS - 3 logs are sending to Application Insights
                     using var scope = _logger.BeginScope(new Dictionary<string, object?>
                     {
                         ["OutboxEventId"] = evt.Id,
