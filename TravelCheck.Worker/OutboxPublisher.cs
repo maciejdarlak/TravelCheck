@@ -38,7 +38,8 @@ public class OutboxPublisher : BackgroundService
                 // publication of each event
                 foreach (var evt in events)
                 {
-                    // 1.LOGS - 3 logs are sending to Application Insights
+                    // LOGS
+                    // new logs --> send to Application Insights
                     using var scope = _logger.BeginScope(new Dictionary<string, object?>
                     {
                         ["OutboxEventId"] = evt.Id,
@@ -46,35 +47,36 @@ public class OutboxPublisher : BackgroundService
                         ["CorrelationId"] = evt.CorrelationId
                     });
 
-                    // 2.TRACE
-                    ActivityContext parentContext = default; // API trace context (if available)
+                    // TRACE
+                    ActivityContext parentContext = default;
 
-                    if (!string.IsNullOrWhiteSpace(evt.TraceParent)) // evt trace context (from Outbox)
+                    if (!string.IsNullOrWhiteSpace(evt.TraceParent)) // evt.TraceParent (context from Outbox)
                     {
                         parentContext = ActivityContext.Parse(evt.TraceParent, evt.TraceState); // API + evt trace connection
                     }
 
-                    // creating a new span (producer) linked to the incoming trace and sending telemetry to Application Insights
+                    // creating a new span (trace part) --> send to Application Insights
                     using var activity = ActivitySource.StartActivity(
                         "PublishOutboxEvent",
                         ActivityKind.Producer,
                         parentContext);
 
-                    // 3.SB
+                    // SERVICE BUS MESSAGE
                     var msg = new ServiceBusMessage(evt.Payload) // evt body
                     {
-                        Subject = evt.Type,
-                        CorrelationId = evt.CorrelationId ?? evt.Id.ToString()
+                        Subject = evt.Type, // e.g. "TripCreated"
+                        CorrelationId = evt.CorrelationId ?? evt.Id.ToString() // e.g. "REQ-20240101-0001" or evt.Id
                     };
 
-                    if (!string.IsNullOrWhiteSpace(evt.TraceParent))
+                    if (!string.IsNullOrWhiteSpace(evt.TraceParent)) // evt.TraceParent = TraceId + SpanId + Flags
                         msg.ApplicationProperties["traceparent"] = evt.TraceParent;
 
-                    if (!string.IsNullOrWhiteSpace(evt.TraceState))
+                    if (!string.IsNullOrWhiteSpace(evt.TraceState)) // evt.TraceState = others
                         msg.ApplicationProperties["tracestate"] = evt.TraceState;
 
                     await _sender.SendMessageAsync(msg, stoppingToken); // send to Service Bus
-                    await _outbox.MarkProcessedAsync(evt.Id, evt.Type); 
+
+                    await _outbox.MarkProcessedAsync(evt.Id, evt.Type);
 
                     _logger.LogInformation("Outbox event published and marked as processed.");
                 }
