@@ -1,8 +1,5 @@
 ﻿using Azure.Messaging.ServiceBus;
-using Microsoft.Extensions.Configuration;
 using TravelCheck.Application.Interfaces;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using System.Diagnostics;
 
 namespace TravelCheck.Worker;
@@ -22,8 +19,13 @@ public class OutboxPublisher : BackgroundService
         ILogger<OutboxPublisher> logger)
     {
         _outbox = outbox;
-        _sender = client.CreateSender(config["ServiceBus:QueueName"]);
         _logger = logger;
+
+        var queueName = config["ServiceBus:QueueName"]; // reads the service bus queue name from the configuration
+        if (string.IsNullOrWhiteSpace(queueName))
+            throw new InvalidOperationException("Missing configuration value: ServiceBus:QueueName"); // fail fast
+
+        _sender = client.CreateSender(queueName);
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -31,15 +33,32 @@ public class OutboxPublisher : BackgroundService
         while (!stoppingToken.IsCancellationRequested)
         {
             try
-            {
-                // downloading unprocessed events from Outbox
-                var events = await _outbox.GetUnprocessedAsync();
+            {              
+                var events = await _outbox.GetUnprocessedAsync(); // downloading unprocessed events from Outbox
 
-                // publication of each event
                 foreach (var evt in events)
                 {
-                    // LOGS
-                    // new logs --> send to Application Insights
+                    stoppingToken.ThrowIfCancellationRequested(); // fast stop between messages
+
+                    // ╔══════════════════════════════════════════════════════════════════════════╗
+                    // ║      TELEMETRY                                                           ║
+                    // ╚══════════════════════════════════════════════════════════════════════════╝
+
+                    // trace
+                    ActivityContext parentContext = default;
+
+                    if (!string.IsNullOrWhiteSpace(evt.TraceParent))
+                        parentContext = ActivityContext.Parse(evt.TraceParent, evt.TraceState);
+
+                    using var activity = ActivitySource.StartActivity(
+                        "PublishOutboxEvent",
+                        ActivityKind.Producer,
+                        parentContext);
+
+                    activity?.SetTag("outbox.event_id", evt.Id.ToString());
+                    activity?.SetTag("outbox.event_type", evt.Type);
+
+                    // logs
                     using var scope = _logger.BeginScope(new Dictionary<string, object?>
                     {
                         ["OutboxEventId"] = evt.Id,
@@ -47,46 +66,48 @@ public class OutboxPublisher : BackgroundService
                         ["CorrelationId"] = evt.CorrelationId
                     });
 
-                    // TRACE
-                    ActivityContext parentContext = default;
+                    // ╔══════════════════════════════════════════════════════════════════════════╗
+                    // ║      MESSAGE PROCESSING LOGIC (PUBLISH TO SERVICE BUS)                   ║
+                    // ╚══════════════════════════════════════════════════════════════════════════╝
 
-                    if (!string.IsNullOrWhiteSpace(evt.TraceParent)) // evt.TraceParent (context from Outbox)
-                    {
-                        parentContext = ActivityContext.Parse(evt.TraceParent, evt.TraceState); // API + evt trace connection
-                    }
-
-                    // creating a new span (trace part) --> send to Application Insights
-                    using var activity = ActivitySource.StartActivity(
-                        "PublishOutboxEvent",
-                        ActivityKind.Producer,
-                        parentContext);
-
-                    // SERVICE BUS MESSAGE
                     var msg = new ServiceBusMessage(evt.Payload) // evt body
                     {
-                        Subject = evt.Type, // e.g. "TripCreated"
-                        CorrelationId = evt.CorrelationId ?? evt.Id.ToString() // e.g. "REQ-20240101-0001" or evt.Id
+                        MessageId = evt.Id.ToString(),
+                        Subject = evt.Type,
+                        CorrelationId = evt.CorrelationId ?? evt.Id.ToString()
                     };
 
-                    if (!string.IsNullOrWhiteSpace(evt.TraceParent)) // evt.TraceParent = TraceId + SpanId + Flags
+                    // propagate trace to consumer
+                    if (!string.IsNullOrWhiteSpace(evt.TraceParent))
                         msg.ApplicationProperties["traceparent"] = evt.TraceParent;
 
-                    if (!string.IsNullOrWhiteSpace(evt.TraceState)) // evt.TraceState = others
+                    if (!string.IsNullOrWhiteSpace(evt.TraceState))
                         msg.ApplicationProperties["tracestate"] = evt.TraceState;
 
                     await _sender.SendMessageAsync(msg, stoppingToken); // send to Service Bus
-
-                    await _outbox.MarkProcessedAsync(evt.Id, evt.Type);
+                    await _outbox.MarkProcessedAsync(evt.Id, evt.Type); // mark processed
 
                     _logger.LogInformation("Outbox event published and marked as processed.");
+                    activity?.SetStatus(ActivityStatusCode.Ok);
                 }
+            }
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+            {
+                break; // normal shutdown
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "OutboxPublisher failed while publishing events.");
             }
 
-            await Task.Delay(3000, stoppingToken);
+            await Task.Delay(3000, stoppingToken); // polling
         }
+    }
+
+    public override async Task StopAsync(CancellationToken cancellationToken)
+    {
+        // ensure sender is disposed
+        await _sender.DisposeAsync();
+        await base.StopAsync(cancellationToken);
     }
 }
