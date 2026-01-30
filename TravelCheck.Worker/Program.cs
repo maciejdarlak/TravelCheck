@@ -1,4 +1,7 @@
 ﻿using Azure.Messaging.ServiceBus;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Routing;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -58,6 +61,22 @@ Host.CreateDefaultBuilder(args)
 
         // event consumer
         services.AddHostedService<TripCreatedConsumer>();
+    })
+    .ConfigureWebHostDefaults(webBuilder =>
+    {
+        webBuilder.UseUrls("http://0.0.0.0:8080");
+        webBuilder.ConfigureServices(services =>
+        {
+            services.AddHealthChecks();
+        });
+        webBuilder.Configure(app =>
+        {
+            app.UseRouting();
+            app.UseEndpoints(endpoints =>
+            {
+                endpoints.MapHealthChecks("/health");
+            });
+        });
     })
     .Build()
     .Run();

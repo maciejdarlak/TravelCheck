@@ -34,6 +34,7 @@ builder.Services.AddSingleton<IOutboxRepository, CosmosOutboxRepository>();
 
 // application services
 builder.Services.AddScoped<TripService>();
+builder.Services.AddHealthChecks();
 
 // service bus client
 builder.Services.AddSingleton(_ =>
@@ -58,6 +59,10 @@ app.UseAuthorization();
 
 // api routes
 app.MapControllers();
+
+// health checks
+app.MapHealthChecks("/health");
+app.MapHealthChecks("/ready");
 
 // run app
 app.Run();
