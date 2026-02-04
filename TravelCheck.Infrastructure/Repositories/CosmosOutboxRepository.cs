@@ -13,12 +13,12 @@ public class CosmosOutboxRepository : IOutboxRepository
     public CosmosOutboxRepository(CosmosClient client, IConfiguration cfg)
     {
         var db = cfg["CosmosDb:DatabaseName"]!;
-        var containerName = cfg["CosmosDb:ContainerName"]!;
+        var containerName = cfg["CosmosDb:OutboxContainerName"]!;
         _container = client.GetContainer(db, containerName);
     }
 
     // saving a new event to the Cosmos DB container
-    public Task AddAsync(OutboxEvent evt)
+    public Task AddAsync(OutboxEvent evt, CancellationToken ct = default)
         => _container.CreateItemAsync(evt, new PartitionKey(evt.Type));
 
     // Queries Cosmos DB and returns all records with processed = false

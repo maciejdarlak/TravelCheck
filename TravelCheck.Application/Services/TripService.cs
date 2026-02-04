@@ -3,19 +3,19 @@ using TravelCheck.Application.Dtos;
 using TravelCheck.Domain.Entities;
 using TravelCheck.Domain.Enums;
 using TravelCheck.Application.Events;
-using System.Text.Json;
+using TravelCheck.Application.Outbox;
 
 namespace TravelCheck.Application.Services;
 
 public class TripService
 {
     private readonly ITripRepository _repository;
-    private readonly IOutboxRepository _outboxRepository;
+    private readonly IOutboxEventPublisher _outboxPublisher;
 
-    public TripService(ITripRepository repository, IOutboxRepository outboxRepository)
+    public TripService(ITripRepository repository, IOutboxEventPublisher outboxPublisher)
     {
         _repository = repository;
-        _outboxRepository = outboxRepository;
+        _outboxPublisher = outboxPublisher;
     }
 
     // CREATE → TripCreatedEvent
@@ -25,7 +25,7 @@ public class TripService
 
         await _repository.AddAsync(trip);
 
-        await AddToOutboxAsync(new TripCreatedEvent(trip.Id));
+        await _outboxPublisher.PublishAsync(new TripCreatedEvent(trip.Id));
 
         return trip.Id;
     }
@@ -53,7 +53,7 @@ public class TripService
 
         await _repository.UpdateAsync(trip);
 
-        await AddToOutboxAsync(new TripUpdatedEvent(trip.Id));
+        await _outboxPublisher.PublishAsync(new TripUpdatedEvent(trip.Id));
 
         return trip;
     }
@@ -68,7 +68,7 @@ public class TripService
 
         await _repository.DeleteAsync(id);
 
-        await AddToOutboxAsync(new TripDeletedEvent(id));
+        await _outboxPublisher.PublishAsync(new TripDeletedEvent(id));
 
         return trip;
     }
@@ -85,27 +85,10 @@ public class TripService
 
         await _repository.UpdateAsync(trip);
 
-        await AddToOutboxAsync(
+        await _outboxPublisher.PublishAsync(
             new TripStatusChangedEvent(trip.Id, newStatus)
         );
 
         return trip;
-    }
-
-    // OUTBOX HELPER
-    private Task AddToOutboxAsync<TEvent>(TEvent evt)
-    {
-        var type = evt!.GetType().Name;
-
-        var outbox = new OutboxEvent
-        {
-            Id = Guid.NewGuid(),
-            Type = type, // partition key
-            Payload = JsonSerializer.Serialize(evt),
-            OccurredAt = DateTimeOffset.UtcNow,
-            Processed = false
-        };
-
-        return _outboxRepository.AddAsync(outbox);
     }
 }

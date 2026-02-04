@@ -2,7 +2,7 @@
 
 namespace TravelCheck.Infrastructure.Services;
 
-public sealed class FakeRiskyCountryService : IRiskyCountryService
+public sealed class HttpRiskyCountryProvider : IRiskyCountryService
 {
     private static readonly HashSet<string> RiskyCountries =
     [

@@ -13,8 +13,8 @@ public class CosmosTripRepository : ITripRepository
     // IConfiguration → access to appsettings.json
     public CosmosTripRepository(CosmosClient client, IConfiguration cfg)
     {
-        var db = cfg["CosmosDb:DatabaseName"]!; 
-        var containerName = cfg["CosmosDb:ContainerName"]!;
+        var db = cfg["CosmosDb:DatabaseName"]!;
+        var containerName = cfg["CosmosDb:TripsContainerName"]!;
         _container = client.GetContainer(db, containerName);
     }
 
