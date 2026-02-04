@@ -11,6 +11,6 @@ namespace TravelCheck.Application.Interfaces
     {
         Task AddAsync(OutboxEvent evt);
         Task<IEnumerable<OutboxEvent>> GetUnprocessedAsync();
-        Task MarkProcessedAsync(Guid id);
+        Task MarkProcessedAsync(Guid id, string type);
     }
 }
