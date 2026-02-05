@@ -1,9 +1,10 @@
-using Microsoft.Azure.Cosmos;
 using Azure.Messaging.ServiceBus;
+using Microsoft.ApplicationInsights.Extensibility;
+using Microsoft.Azure.Cosmos;
 using TravelCheck.Application.Interfaces;
+using TravelCheck.Application.Outbox;
 using TravelCheck.Application.Services;
 using TravelCheck.Infrastructure.Repositories;
-using Microsoft.ApplicationInsights.Extensibility;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -31,6 +32,9 @@ builder.Services.AddSingleton(_ =>
 // repositories
 builder.Services.AddSingleton<ITripRepository, CosmosTripRepository>();
 builder.Services.AddSingleton<IOutboxRepository, CosmosOutboxRepository>();
+
+// registers the Outbox event publisher used by TripService
+builder.Services.AddScoped<IOutboxEventPublisher, OutboxEventPublisher>();
 
 // application services
 builder.Services.AddScoped<TripService>();

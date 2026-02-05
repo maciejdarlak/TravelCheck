@@ -8,6 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using TravelCheck.Application.Interfaces;
+using TravelCheck.Application.Outbox;
 using TravelCheck.Application.Services;
 using TravelCheck.Infrastructure.Integrations;
 using TravelCheck.Infrastructure.Repositories;
@@ -35,6 +36,9 @@ Host.CreateDefaultBuilder(args)
         // repositories
         services.AddSingleton<ITripRepository, CosmosTripRepository>();
         services.AddSingleton<IOutboxRepository, CosmosOutboxRepository>();
+
+        // outbox event publisher (used by worker)
+        services.AddScoped<IOutboxEventPublisher, OutboxEventPublisher>();
 
         // application services
         services.AddScoped<TripService>();
